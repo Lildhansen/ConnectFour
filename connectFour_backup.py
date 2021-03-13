@@ -1,12 +1,3 @@
-#take from chess.py (backup) - so splite the board into 7 parts and look for where the mouse is clicked and not collision
-# Make an array/dictionary/object (class) - probably class, to keep track of how many pieces are in each column.
-# make function to add to column - that takes which column (starting from 0) as parameter
-# When 1 column is full make it so you cant put any more pieces in
-
-
-
-
-
 #to do:
 #addPiece() function
 #make window taller, make room for "player x turn" - in blue if he is blue and red if not (or whatever the colors are)
