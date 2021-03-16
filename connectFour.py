@@ -4,6 +4,11 @@
 # When 1 column is full make it so you cant put any more pieces in
 
 
+#make function to check for 4 connected
+	#i stedet for at checke på alle led, skal den efter hver tur, finde alle af den farve (enten 1 eller 0'er), og se om de er 4 på stribe
+	#den skal return den position i multidimensionelt array hvor enten 1-tallerne eller 0-tallerne er	
+
+	#ellers skulle alle måde der kan tjekkes 4 på stribe kigges igennem.
 
 
 
@@ -22,13 +27,19 @@
 import pygame,time
 
 #sizes
-COLUMN_WIDTH = 91.43
 GAMEBOARD_WIDTH = 640
 GAMEBOARD_HEIGHT = 480
+COLUMN_WIDTH = 91.43
+ROW_HEIGHT = 480 / 6
+PIECE_RADIUS = 35
 
-SENTINEL_POSITION = (1000) #a position out of bounds
+SENTINEL_VALUE = 1000 #a position out of bounds
 COLUMNS = 7
 ROW = 6
+
+#colors
+RED = (255,0,0)
+YELLOW = (255,255,0)
 
 
 pygame.init()
@@ -39,11 +50,15 @@ pygame.display.set_caption("Connect Four")
 
 bg = pygame.image.load('billeder/bg.png')
 
-def codePosToGamePos(codePos): #takes list as parameter
-	gamePos = codePos.copy()
-	return [(i-1)*COLUMN_WIDTH for i in gamePos]
+#takes x,y returns x,y
+def codePosToGamePosRect(codeY,codeX): 
+	return int(GAMEBOARD_HEIGHT - codeY*ROW_HEIGHT),int((codeX-1)*COLUMN_WIDTH)
 
-def gamePosToCodePos(gamePos):
+def codePosToGamePosCircle(codeY,codeX): 
+	return int(GAMEBOARD_HEIGHT - codeY*ROW_HEIGHT+PIECE_RADIUS+6),int((codeX-1)*COLUMN_WIDTH + PIECE_RADIUS+11 ) #de random tal er så det passer i figuren
+	
+
+def gamePosToCodePos(gamePos): #works only for checking what column is pressed - doesnt look at rows
 	codePos = list(gamePos)
 	count = 1
 	if codePos[1] > GAMEBOARD_HEIGHT:
@@ -54,14 +69,26 @@ def gamePosToCodePos(gamePos):
 	return count
 
 
-def drawBoard(): #draws the squares of the board + the upper bounds
+def drawBoard(): #draws the squares of the board
 	columns = []
-	topOfColumn = []
+	#topOfColumn = []
 	for i in range(7):
 		columns.append(pygame.draw.rect(window,(255,255,255),(i*COLUMN_WIDTH,0,COLUMN_WIDTH,480))) 
-		topOfColumn.append(pygame.draw.rect(window,(255,0,0),(i*COLUMN_WIDTH,0,COLUMN_WIDTH-10,5))) #-10 to make sure it doesnt overlap with next column
-	return columns,topOfColumn
-hitboxes,topOfColumns = drawBoard()
+		#topOfColumn.append(pygame.draw.rect(window,(255,0,0),(i*COLUMN_WIDTH,0,COLUMN_WIDTH-10,5))) #-10 to make sure it doesnt overlap with next column
+	return columns
+hitboxes = drawBoard()
+
+
+class Piece():
+	def __init__(self,isRed,row,column):
+		#gamePosOfRow,gamePosOfColumn = codePosToGamePosRect(row,column)
+		gamePosOfRow,gamePosOfColumn = codePosToGamePosCircle(row,column)
+		print(gamePosOfRow)
+		print(gamePosOfColumn)
+		pygame.draw.circle(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow),PIECE_RADIUS+5,100) #+5 to make sure all is covered
+		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #lav cirkler i stedet?
+
+
 
 #helper for Gameboard self.piecesInGameboardArray:
 a = [[0]*8 for y in range(7)]
@@ -75,17 +102,21 @@ a[0][7] = SENTINEL_VALUE
 class Gameboard():
 	def __init__(self):
 		#this value counts how many brikker that is in each of the columns (1-7 columns) - (0-6 pieces in each column)
-		self.columnCounter = [SENTINEL_POSITION,0,0,0,0,0,0,0]#first value is sentiel, since columns start from 1 - rest have 0 in them to begin with
+		self.columnCounter = [SENTINEL_VALUE,0,0,0,0,0,0,0]#first value is sentiel, since columns start from 1 - rest have 0 in them to begin with
 		# 0 = empty 1 = red, 2 = yellow SENTINEL_VALUE = invalid Position
 		self.piecesInGameboardArray = a
-	def addToColumnCounter(column):
+		self.pieces = []#DO NOT TOUCH - for all the pieces
+	def addToColumnCounter(self,column):
 		self.columnCounter[column] += 1
-	def addToPiecesInGameboardArray(column,isRed):
-		pass
-		#find what position to place it with columnCounter(maybe call it in this func)
-		#change value of piecesInGameboardArray
-		#call func that adds visually to board
-		#manage turns
+	def addPiecesToGameboard(self,column,isRed):
+		piecesInColumn = self.columnCounter[column]
+		self.piecesInGameboardArray[piecesInColumn+1][column] = 1 if isRed else 2 #add piece to code
+		self.addPieceToVisualGameboard(isRed,piecesInColumn+1,column) #add piece visually
+		self.columnCounter[column] += 1 
+		print(self.piecesInGameboardArray)
+	def addPieceToVisualGameboard(self,isRed,row,column):
+		self.pieces.append(Piece(isRed,row,column))
+	#make piece from Piece object - put it in position depending on
 
 
 
@@ -118,13 +149,23 @@ def columnOfMouseclick(): #returns false if it is an invalid position - else ret
 			return index
 	return False
 
+def doPlayerTurn(columnToPlacePiece,isRed):
+	gameboard.addPiecesToGameboard(column,True)
+	nextPlayersTurn()
+		#find what position to place it with columnCounter(maybe call it in this func) 
+		#change value of piecesInGameboardArray
+		#call func that adds visually to board
+		#manage turns
+
+def nextPlayersTurn():
+	pass
 
 
 def validColumnSelected(column):
 	return bool(column)
 
 def columnNotFull(column):
-	if gameboard.columnCounter[column] < 7:
+	if gameboard.columnCounter[column] < 6:
 		return True
 	return False
 
@@ -148,10 +189,10 @@ while running:
 			running = False
 		if event.type == pygame.MOUSEBUTTONUP:
 			clickedPos = pygame.mouse.get_pos()
+			print(clickedPos)
 			column = gamePosToCodePos(clickedPos)
 			if (validColumnSelected(column) and columnNotFull(column)):
-				gameboard.addToColumnCounter(column)
-				
+				doPlayerTurn(column,True)	
 			#pos = pygame.mouse.get_pos()
 			#clickedColumn = columnOfMouseclick()
 			#x = columnIsNotFull(clickedColumn)
