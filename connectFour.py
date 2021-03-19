@@ -1,12 +1,8 @@
-#take from chess.py (backup) - so splite the board into 7 parts and look for where the mouse is clicked and not collision
-# Make an array/dictionary/object (class) - probably class, to keep track of how many pieces are in each column.
-# make function to add to column - that takes which column (starting from 1) as parameter (0 is invalid)
-# When 1 column is full make it so you cant put any more pieces in
-
 
 #make function to check for 4 connected
 	#i stedet for at checke på alle led, skal den efter hver tur, finde alle af den farve (enten 1 eller 0'er), og se om de er 4 på stribe
 	#den skal return den position i multidimensionelt array hvor enten 1-tallerne eller 0-tallerne er	
+	#måske rekursivt
 
 	#ellers skulle alle måde der kan tjekkes 4 på stribe kigges igennem.
 
@@ -17,12 +13,23 @@
 #make window taller, make room for "player x turn" - in blue if he is blue and red if not (or whatever the colors are)
 #create the turn based thingy - maybe with a boolean when a valid option is chosen
 #check for win
-#lav en draw.rect i det øverste hul for alle kolonner (måske kun gør den halv højde, for at være sikker på den under ikke rammer den, 
-	#så man kan tjekke collision med brikkerne, og hvis den collider, låses den kolonne
 
-#alternativt - lav det gamle chess hitbox med position i stedet for collision, hvis nu brikkerne dækker over collisionen (det gør de ikke)
 
 #draw.rect(window,(r,g,b),(distance_bredde,distance_højde,bredde,højde) ) 
+
+
+
+#find en fast farve til at starte.
+#Der skal printes ud til at starte med - hvems tur det er.
+	#måske med en boolean der tjekker om noget er første spil eller ej
+
+
+#updated todo:
+#Make a way to win
+#make main menu
+#	player 1/2 choose their color
+#	get this implemented in the game
+
 
 import pygame,time
 
@@ -36,10 +43,14 @@ PIECE_RADIUS = 35
 SENTINEL_VALUE = 1000 #a position out of bounds
 COLUMNS = 7
 ROW = 6
+SENTINEL_POSITION = (100,100)
 
 #colors
 RED = (255,0,0)
 YELLOW = (255,255,0)
+
+#global variable:
+running = True
 
 
 pygame.init()
@@ -94,21 +105,27 @@ class Piece():
 a = [[0]*8 for y in range(7)]
 i = 0
 while i < 7:
-    a[0][i] = SENTINEL_VALUE
-    a[i][0] = SENTINEL_VALUE
-    i += 1
+	a[0][i] = SENTINEL_VALUE
+	a[i][0] = SENTINEL_VALUE
+	i += 1
 a[0][7] = SENTINEL_VALUE 
 
-class Gameboard():
+class Gameboard:
 	def __init__(self):
 		#this value counts how many brikker that is in each of the columns (1-7 columns) - (0-6 pieces in each column)
 		self.columnCounter = [SENTINEL_VALUE,0,0,0,0,0,0,0]#first value is sentiel, since columns start from 1 - rest have 0 in them to begin with
 		# 0 = empty 1 = red, 2 = yellow SENTINEL_VALUE = invalid Position
 		self.piecesInGameboardArray = a
 		self.pieces = []#DO NOT TOUCH - for all the pieces
+		self.isRedsTurn = True #maybe not always
+		self.isIntialTurn = True
+	def returnIsRedsTurn(self): #Tør ikke slette den
+		return self.isRedsTurn()
+	def nextTurn(self):
+		self.isRedsTurn = not self.isRedsTurn
 	def addToColumnCounter(self,column):
 		self.columnCounter[column] += 1
-	def addPiecesToGameboard(self,column,isRed):
+	def addPieceToGameboard(self,column,isRed):
 		piecesInColumn = self.columnCounter[column]
 		self.piecesInGameboardArray[piecesInColumn+1][column] = 1 if isRed else 2 #add piece to code
 		self.addPieceToVisualGameboard(isRed,piecesInColumn+1,column) #add piece visually
@@ -118,27 +135,29 @@ class Gameboard():
 		self.pieces.append(Piece(isRed,row,column))
 	#make piece from Piece object - put it in position depending on
 
-
-
-
 gameboard = Gameboard()
 #21 af hver - lav alle brikkerne på forhånd i lister - kombiner med columnIsNotFull()
-class PlayerTurnDisplay(): #create 2 instances - with each color, and make the other one invisible/have white color when not their turn / change its position to out of bounds
+
+
+
+class PlayerTurnDisplay: #create 2 instances - with each color, and make the other one invisible/have white color when not their turn / change its position to out of bounds
 	def __init__(self,isRed,player):
 		self.textbox = pygame.draw.rect(window,(0,0,0),(0,480,640,40))
 		self.playerText = pygame.image.load(f"billeder/playerTurn/{str(player)}_{'red' if isRed else 'yellow'}.png")
-	def isMyTurn(self): #changes the text position so it is visible
-		pass
+		self.isRed = isRed
+		self.player = player
+		self.position = (GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT) #160 is the width of the image
 	def whoseTurnIsItAnyway(self,redsTurn):
 		if (redsTurn and self.isRed) or (not redsTurn and not self.isRed):
+			print(f"{self.isRed} --------- {redsTurn}")
 			self.displayWhoseTurn(self.position)
 		else:
-			removeDisplayWhoseTurn(self.position)
+			self.displayWhoseTurn(SENTINEL_POSITION)
 	def displayWhoseTurn(self,position): #sentinel position if not active - otherwise defined position #must be tuple or list of position x,y
 		#denne funktion skal kaldes af en anden funktion
 		window.blit(self.playerText,position)
 	def removeDisplayWhoseTurn(self,position):
-		window.blit(self.playerText,position) # skal ændres så den blot er hvid - skal sikre sig at displaywhoseTurn ikke stadig kører
+		window.blit(self.playerText,position) # 
 		
 playerRedTurn = PlayerTurnDisplay(True,1)
 playerYellowTurn = PlayerTurnDisplay(False,2)
@@ -150,15 +169,23 @@ def columnOfMouseclick(): #returns false if it is an invalid position - else ret
 	return False
 
 def doPlayerTurn(columnToPlacePiece,isRed):
-	gameboard.addPiecesToGameboard(column,True)
+	gameboard.addPieceToGameboard(column,isRed)
+	if len(gameboard.pieces) != 0:
+		gameboard.isIntialTurn = False
+	checkWinCondition(isRed)
 	nextPlayersTurn()
-		#find what position to place it with columnCounter(maybe call it in this func) 
-		#change value of piecesInGameboardArray
-		#call func that adds visually to board
-		#manage turns
+
+def checkWinCondition(isRed): #only checks it for one color - the one recently placed
+	pass
 
 def nextPlayersTurn():
-	pass
+	gameboard.nextTurn()
+	if gameboard.isRedsTurn:
+		playerRedTurn.whoseTurnIsItAnyway(True)
+	else:
+		playerYellowTurn.whoseTurnIsItAnyway(False)
+
+
 
 
 def validColumnSelected(column):
@@ -169,22 +196,20 @@ def columnNotFull(column):
 		return True
 	return False
 
-def addPiece():
-	#check mouse position - er det korrekt:
-		#hvems tur er det - skal displayes i bunden
-	pass
 
-running = True
+
+
 
 
 
 while running:
 	
 	window.blit(bg,[0,0])
-	playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
-
+	#playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
+	if gameboard.isIntialTurn:
+		print("does it go here")
+		playerRedTurn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
 	for event in pygame.event.get(): 
-		
 		if event.type == pygame.QUIT:
 			running = False
 		if event.type == pygame.MOUSEBUTTONUP:
@@ -192,7 +217,8 @@ while running:
 			print(clickedPos)
 			column = gamePosToCodePos(clickedPos)
 			if (validColumnSelected(column) and columnNotFull(column)):
-				doPlayerTurn(column,True)	
+				print(f"WHAT IS IT: {gameboard.isRedsTurn}")
+				doPlayerTurn(column,gameboard.isRedsTurn)	
 			#pos = pygame.mouse.get_pos()
 			#clickedColumn = columnOfMouseclick()
 			#x = columnIsNotFull(clickedColumn)
