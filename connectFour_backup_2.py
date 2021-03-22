@@ -175,11 +175,20 @@ class Gameboard:
 							i += 1
 							print(f"counter: {counter}")
 							if counter == 4:
-								endScreen(isRed, True)
+								gameWon(isRed)
 								#game won
 								break
 						print("Game not won")
 
+def gameWon(whoWonIsRed): #whoWonIsRed is a boolean
+	if whoWonIsRed:
+		winScreen = pygame.image.load("billeder/playerWon/1_red.png")
+	else:
+		winScreen = pygame.image.load("billeder/playerWon/2_yellow.png")
+	window.fill((0,0,0))
+	pygame.draw.rect(window,(0,0,0),(0,0,GAMEBOARD_WIDTH,GAMEBOARD_HEIGHT+40))
+	window.blit(winScreen,(0,0)) 
+	#måske gå til ny skærm - win screen
 
 	#if (der bliver klikket på skærmen
 	#global running
@@ -268,50 +277,29 @@ def columnNotFull(column):
 
 
 
-def mainMenu():
-	pass
 
-def endScreen(whoWonIsRed,gameIsDone):
-	while gameIsDone:
-		#whoWonIsRed is a boolean
-		if whoWonIsRed:
-			winScreen = pygame.image.load("billeder/playerWon/1_red.png")
-		else:
-			winScreen = pygame.image.load("billeder/playerWon/2_yellow.png")
-		window.fill((0,0,0))
-		pygame.draw.rect(window,(0,0,0),(0,0,GAMEBOARD_WIDTH,GAMEBOARD_HEIGHT+40))
-		window.blit(winScreen,(0,0)) 
-		for event in pygame.event.get():
-			if event.type == KEYDOWN:
-				if event.key == K_RETURN:
-					mainGame()
-		#måske gå til ny skærm - win screen
-column = -1000
-def mainGame():
-	running = True
-	while running:
+
+while running:
 	
-		window.blit(bg,[0,0])
-		#playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
-		if gameboard.isIntialTurn:
-			playerRedTurn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
-		for event in pygame.event.get(): 
-			if event.type == pygame.QUIT:
-				running = False
-			if event.type == pygame.MOUSEBUTTONUP:
-				clickedPos = pygame.mouse.get_pos()
-				#print(clickedPos)
-				column = gamePosToCodePos(clickedPos)
-				time.sleep(0.1)
-				if (validColumnSelected(column) and columnNotFull(column)):
-					#print(f"WHAT IS IT: {gameboard.isRedsTurn}")
-					doPlayerTurn(column,gameboard.isRedsTurn)	
-				#pos = pygame.mouse.get_pos()
-				#clickedColumn = columnOfMouseclick()
-				#x = columnIsNotFull(clickedColumn)
-				#if clickedColumn and x:
-				#	addPiece()
-		pygame.display.update()
+	window.blit(bg,[0,0])
+	#playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
+	if gameboard.isIntialTurn:
+		playerRedTurn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
+	for event in pygame.event.get(): 
+		if event.type == pygame.QUIT:
+			running = False
+		if event.type == pygame.MOUSEBUTTONUP:
+			clickedPos = pygame.mouse.get_pos()
+			#print(clickedPos)
+			column = gamePosToCodePos(clickedPos)
+			if (validColumnSelected(column) and columnNotFull(column)):
+				#print(f"WHAT IS IT: {gameboard.isRedsTurn}")
+				doPlayerTurn(column,gameboard.isRedsTurn)	
+			#pos = pygame.mouse.get_pos()
+			#clickedColumn = columnOfMouseclick()
+			#x = columnIsNotFull(clickedColumn)
+			#if clickedColumn and x:
+			#	addPiece()
+	pygame.display.update()
 
-mainGame()
 pygame.quit()
