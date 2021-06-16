@@ -31,7 +31,7 @@
 #	get this implemented in the game
 
 
-import pygame,time
+import pygame,time,os,sys
 import numpy as np
 
 #sizes
@@ -94,11 +94,14 @@ hitboxes = drawBoard()
 
 class Piece():
 	def __init__(self,isRed,row,column):
+		self.row = row
+		self.column = column
+		self.isRed = isRed
 		#gamePosOfRow,gamePosOfColumn = codePosToGamePosRect(row,column)
-		gamePosOfRow,gamePosOfColumn = codePosToGamePosCircle(row,column)
+		gamePosOfRow,gamePosOfColumn = codePosToGamePosCircle(self.row,self.column)
 		#print(gamePosOfRow)
 		#print(gamePosOfColumn)
-		pygame.draw.circle(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow),PIECE_RADIUS+5,100) #+5 to make sure all is covered
+		pygame.draw.circle(window,RED if self.isRed else YELLOW,(gamePosOfColumn,gamePosOfRow),PIECE_RADIUS+5,100) #+5 to make sure all is covered
 		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #lav cirkler i stedet?
 
 
@@ -137,49 +140,203 @@ class Gameboard:
 		self.pieces.append(Piece(isRed,row,column))
 	def checkWinCondition(self,isRed): #only checks it for one color - the one recently placed
 		npPiecesInGameboardArray = np.array(self.piecesInGameboardArray)
-		numOfYellowOrRedPieces = np.argwhere(npPiecesInGameboardArray == (1 if isRed else 2))
-		print(numOfYellowOrRedPieces)
-		#print(numOfYellowOrRedPieces[0][0])
-		if len(numOfYellowOrRedPieces) > 3:
-			numInRows = [0 for _ in range(8)] #range en højere, da den ikke tæller med
+		locationOfYellowOrRedPieces = np.argwhere(npPiecesInGameboardArray == (1 if isRed else 2))
+		#print(locationOfYellowOrRedPieces)
+		#print(locationOfYellowOrRedPieces[0][0])
+		if len(locationOfYellowOrRedPieces) > 3:
+			numInRows = [0 for _ in range(7)] 
 			numInRows[0] = SENTINEL_VALUE
-			numInColumns = [0 for _ in range(9)]
+			#numInRows[7] = SENTINEL_VALUE
+			numInColumns = [0 for _ in range(8)]
 			numInColumns[0] = SENTINEL_VALUE
-			for x,y in numOfYellowOrRedPieces:
-				print(numInColumns[x])
+			for x,y in locationOfYellowOrRedPieces:
+				#print(numInColumns[x])
 				numInRows[x] += 1
 				numInColumns[y] += 1
 				
-			print(f"column: {numInColumns}")
-			print(f"row: {numInRows}")
-			#her tjekkes vandret - funktionen skal starte her:
-			for	row in numInRows:
-				if row > 3: #dvs der er mindst 4 på samme række:
-					rowsWithMoreThan3Pieces = [i for i, x in enumerate(numInRows) if x == row]
-					for row in rowsWithMoreThan3Pieces:
-						piecesInRow = []
-						columnsOfPiecesInRow = []
-						for piece in numOfYellowOrRedPieces:
-							if piece[0] == row:
-								print(f"piece: {piece}, piece[0]: {piece[0]}")
-								piecesInRow.append(piece)
-						for row,column in piecesInRow:
-							columnsOfPiecesInRow.append(column)
+			#print(f"column: {numInColumns}")
+			#print(f"row: {numInRows}")
+			winningConditions = []
+			winningConditions.append(checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed))
+			winningConditions.append(checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed))	
+			winningConditions.append(checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed))
+			for condition in winningConditions:
+				if condition != None:
+					return condition
+
+
+def checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed):
+	for	piecesInRow in numInRows:
+		if piecesInRow > 3: #dvs der er mindst 4 på samme række:
+			rowsWithMoreThan3Pieces = [i for i, x in enumerate(numInRows) if x == piecesInRow]
+			for row in rowsWithMoreThan3Pieces:
+				piecesInRow = []
+				columnsOfPiecesInRow = []
+				for piece in locationOfYellowOrRedPieces:
+					#print(f" numnum: {locationOfYellowOrRedPieces}")
+					if piece[0] == row:
+						#print(f"piece: {piece}, piece[0]: {piece[0]}")
+						piecesInRow.append(piece)
+				for row,column in piecesInRow:
+					columnsOfPiecesInRow.append(column)
+				counter = 1
+				i = 0
+				while i < len(columnsOfPiecesInRow)-1:
+					#print(f"i: {columnsOfPiecesInRow[i]}, i+1: {columnsOfPiecesInRow[i+1]-1}")
+					if (columnsOfPiecesInRow[i] == columnsOfPiecesInRow[i+1]-1):
+						counter += 1
+					else:
 						counter = 1
-						i = 0
-						while i < len(columnsOfPiecesInRow)-1:
-							print(f"i: {columnsOfPiecesInRow[i]}, i+1: {columnsOfPiecesInRow[i+1]-1}")
-							if (columnsOfPiecesInRow[i] == columnsOfPiecesInRow[i+1]-1):
-								counter += 1
-							else:
-								counter = 1
-							i += 1
-							print(f"counter: {counter}")
-							if counter == 4:
-								#game won
-								return isRed
+					i += 1
+					#print(f"counter: {counter}")
+					if counter == 4:
+						#game won
+						return isRed
+def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
+	for piecesInColumn in numInColumns:
+		if piecesInColumn > 3:
+			columnsWithMoreThan3Pieces = [i for i, x in enumerate(numInColumns) if x == piecesInColumn]
+			##print(f"col: {columnsWithMoreThan3Pieces}")
+			for column in columnsWithMoreThan3Pieces:
+				piecesInColumns = []
+				rowsOfPiecesInColumns = []
+				for piece in locationOfYellowOrRedPieces:
+					if piece[1] == column:
+						piecesInColumns.append(piece)
+				for row,column in piecesInColumns:
+					rowsOfPiecesInColumns.append(row)
+				#print(piecesInColumns, rowsOfPiecesInColumns)
+				counter = 1
+				i = 0
+				while i < len(rowsOfPiecesInColumns)-1:
+					##print(f"counter {counter}")
+					if (rowsOfPiecesInColumns[i] == rowsOfPiecesInColumns[i+1]-1):
+						counter += 1	
+					else:
+						counter = 1
+					i+=1
+					if counter == 4:
+						##print(f"ENd {isRed}")
+						return isRed
+
+def checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
+	print(numInColumns)
+	print(locationOfYellowOrRedPieces)
+	check = checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns)
+	if check == None:
+		return None
+	if checkDiagonalRecursive(locationOfYellowOrRedPieces,locationOfYellowOrRedPieces[0],0,0) == False:
+		print("hello")
+		return None
+	print("done")
+	return isRed
 
 
+def checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns):
+	count = 0
+	for numInColumn in numInColumns: #make extra checks to prevent huge complexity
+		if count == 4:
+			break
+		if numInColumn == SENTINEL_VALUE:
+			continue
+		if numInColumn > 0:
+			count += 1
+		else:
+			count = 0
+	print(count)
+	if count < 4:
+		return None
+	count = 0
+	for numInRow in numInRows:
+		if count == 4:
+			break
+		if numInRow == SENTINEL_VALUE:
+			continue
+		if numInRow > 0:
+			count += 1
+		else:
+			count = 0
+	if count < 4:
+		return None
+	return True
+	
+def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,startingPieceIndex):
+	#validWidthValues = [_ for x in range(1,8)] #pieceLocation[0]+1 in validHeightValues and pieceLocation[1]-1 in validWidthValues
+	#validHeightValues = [_ for x in range(1,7)]
+	if numFoundInARow == 4:
+		return True
+	#NW
+	if [pieceLocation[0]+1,pieceLocation[1]-1] in allPieceLocations: 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex)
+	#NE
+	if [pieceLocation[0]+1,pieceLocation[1]+1] in allPieceLocations: 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex)
+	#SW
+	if [pieceLocation[0]-1,pieceLocation[1]-1] in allPieceLocations: 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex)
+	#SE
+	if [pieceLocation[0]-1,pieceLocation[1]+1] in allPieceLocations: 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex)
+	#check if checked piece is last piece
+	#print(f"{pieceLocation} == {allPieceLocations[-1]}")
+	#if (pieceLocation[0] == allPieceLocations[-1][0] and pieceLocation[1] == allPieceLocations[-1][1]):
+	#	return False
+	#calls for next piece if no piece in 4 corners
+	#print(list(allPieceLocations))
+	#print(list(allPieceLocations).index(pieceLocation)+1)
+	nextPieceIndex = allPieceLocations.tolist().index(allPieceLocations.tolist()[startingPieceIndex])+1
+	#print(f"NPI: {nextPieceIndex}")
+	if nextPieceIndex+1 == len(allPieceLocations):
+		print("stop")
+		return False
+	checkDiagonalRecursive(allPieceLocations,allPieceLocations[nextPieceIndex],0,nextPieceIndex)
+#except Exception as e:
+	#print(f"Error on line {sys.exc_info()[-1].tb_lineno}")
+	#print(e)
+
+		#den kan ikke køre den sidste - det med at stoppe når den er nået den sidste kører ikke - i linje 286 er jeg stuck i et infinite recursive loop
+
+	#starte fra en af dem - se om der er brikker i alle 4 hjørner
+		#hvis der er - så tjek de 4 hjørner for den (hvis flere skal der også tjekkes de 4 hjørner for den anden
+		#vi skal ikke tjekke out of bounds
+
+		#print(piece[0],piece[1])
+	
+
+
+	##print(numInRows,numInColumns)
+	#counter = 0
+	#i = 1
+#	print("\n")
+#	for i in range(8):
+#		print(counter)
+#		if counter == 4:
+#			break
+#		if (numInRows[i] > 0 and numInColumns[i] > 0):
+#			counter += 1
+#		else:
+#			counter = 0
+#	if counter != 4:
+#		return
+#	print(i)
+
+
+	
+	
+	#for numInRow in numInRows: #for some reason it cant do both loops at the same time - tuple unpacking says too many values even though it isnt.
+	#	if counter == 4:
+	#		for numInColumn in numInColumns:
+	#
+	#	if numInRow > 0:
+	#		counter += 1
+
+	#for rowOrColumn in numInRows,numInColumns: #counter skal gå op hvis den matcher både række og col
+	#	print(f"rowCol: {rowOrColumn}")
+	#	for x in rowOrColumn:
+	#		print(f"x is {x}")
+	#	pass #grabbed both. now do for loop over both of them - to find min 1 på 4 rækker/kolonner i streg
+	#for row,column in numInRows,numInColumns:
+	#	print()
 	#if (der bliver klikket på skærmen
 	#global running
 	#running = False
@@ -271,10 +428,12 @@ def columnNotFull(column):
 
 #prøv og lav main menu. se hvordan det virker
 def mainMenu():
-	pass
+	print("hello")
+	#pygame.quit()
 
-def endScreen(whoWonIsRed,gameIsDone):#whoWonIsRed is a boolean
-	while gameIsDone:
+def endScreen(whoWonIsRed,endScreenRunning):#whoWonIsRed is a boolean
+	while endScreenRunning:
+		print("hh")
 		print("game is done")
 		if whoWonIsRed:
 			print("red")
@@ -290,10 +449,10 @@ def endScreen(whoWonIsRed,gameIsDone):#whoWonIsRed is a boolean
 				if event.key == pygame.K_RETURN:
 					mainGame()
 			if event.type == pygame.QUIT:
-				gameIsDone = False
+				endScreenRunning = False
 		pygame.display.update()
-		#måske gå til ny skærm - win screen
-column = ""
+	mainMenu()
+#column = ""
 
 def mainGame():
 	running = True
@@ -304,6 +463,8 @@ def mainGame():
 			playerRedTurn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
 		for event in pygame.event.get(): 
 			if event.type == pygame.QUIT:
+				#pygame.display.quit()
+				#pygame.quit()
 				running = False
 			if event.type == pygame.MOUSEBUTTONUP:
 				clickedPos = pygame.mouse.get_pos()
@@ -316,18 +477,27 @@ def mainGame():
 					a = doPlayerTurn(column,gameboard.isRedsTurn)
 					if a != None:
 						pygame.display.update()
+						time.sleep(1) #burde nok skrive hvem der vandt her i stedet ... , eller i hvert fald gøre så der kan klikke spå en tast for at gå videre
 						running = False
+						endScreen(a, True)
+						#running = False
 				#pos = pygame.mouse.get_pos()
 				#clickedColumn = columnOfMouseclick()
 				#x = columnIsNotFull(clickedColumn)
 				#if clickedColumn and x:
 				#	addPiece()
 		pygame.display.update()
-	time.sleep(1)
-	endScreen(a, True)
 
 #a,b = mainGame()
 #a,b = True,True
 #endScreen(a,b)
+
 mainGame()
 pygame.quit()
+
+
+#to do:
+	#main menu
+		#vælg farve
+	#diagonalt
+	#nederste cirkel går lige ned under boarded
