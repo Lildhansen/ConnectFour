@@ -1,35 +1,7 @@
-
-#make function to check for 4 connected
-	#i stedet for at checke på alle led, skal den efter hver tur, finde alle af den farve (enten 1 eller 0'er), og se om de er 4 på stribe
-	#den skal return den position i multidimensionelt array hvor enten 1-tallerne eller 0-tallerne er	
-	#måske rekursivt
-
-	#ellers skulle alle måde der kan tjekkes 4 på stribe kigges igennem.
-
-
-
-#to do:
-#addPiece() function
-#make window taller, make room for "player x turn" - in blue if he is blue and red if not (or whatever the colors are)
-#create the turn based thingy - maybe with a boolean when a valid option is chosen
-#check for win
-
-
 #draw.rect(window,(r,g,b),(distance_bredde,distance_højde,bredde,højde) ) 
 
-
-
-#find en fast farve til at starte.
-#Der skal printes ud til at starte med - hvems tur det er.
-	#måske med en boolean der tjekker om noget er første spil eller ej
-
-
-#updated todo:
-#Make a way to win
-#make main menu
-#	player 1/2 choose their color
-#	get this implemented in the game
-
+#not sure what im doing - but it works. for vertical check:
+foundFourInRow = False
 
 import pygame,time,os,sys
 import numpy as np
@@ -45,6 +17,7 @@ SENTINEL_VALUE = -1000 #a position out of bounds
 COLUMNS = 7
 ROW = 6
 SENTINEL_POSITION = (100,100)
+MAX_PIECES = 7*6
 
 #colors
 RED = (255,0,0)
@@ -101,7 +74,7 @@ class Piece():
 		gamePosOfRow,gamePosOfColumn = codePosToGamePosCircle(self.row,self.column)
 		#print(gamePosOfRow)
 		#print(gamePosOfColumn)
-		pygame.draw.circle(window,RED if self.isRed else YELLOW,(gamePosOfColumn,gamePosOfRow),PIECE_RADIUS+5,100) #+5 to make sure all is covered
+		pygame.draw.circle(window,RED if self.isRed else YELLOW,(gamePosOfColumn,gamePosOfRow-2),PIECE_RADIUS+5) #+5 and -2 to make sure all is covered
 		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #lav cirkler i stedet?
 
 
@@ -159,10 +132,13 @@ class Gameboard:
 			winningConditions = []
 			winningConditions.append(checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed))
 			winningConditions.append(checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed))	
+			#winningConditions.append(checkDiagonalNonRecurse(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed)) #den gøres nonrecurse for at se om det virker. ellers kaldes:
 			winningConditions.append(checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed))
 			for condition in winningConditions:
 				if condition != None:
 					return condition
+			if (len(gameboard.pieces) == MAX_PIECES):
+				return "tie"
 
 
 def checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed):
@@ -219,17 +195,30 @@ def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
 						##print(f"ENd {isRed}")
 						return isRed
 
+def checkDiagonalNonRecurse(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
+	check = checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns)
+	if check == None:
+		return None
+	if actuallyCheckDiagonalNonRecurse(locationOfYellowOrRedPieces,locationOfYellowOrRedPieces[0]):
+		return isRed
+
+#allPieceLocations er kun for den farve den får
+def actuallyCheckDiagonalNonRecurse(allPieceLocations,pieceLocation):
+	for piece in allPieceLocations:
+		#de 4 if checks som i recurse func
+		pass
+
 def checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
-	print(numInColumns)
+	#print(numInColumns)
 	print(locationOfYellowOrRedPieces)
 	check = checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns)
 	if check == None:
 		return None
-	if checkDiagonalRecursive(locationOfYellowOrRedPieces,locationOfYellowOrRedPieces[0],0,0) == False:
-		print("hello")
-		return None
-	print("done")
-	return isRed
+	global foundFourInRow
+	foundFourInRow = False
+	checkDiagonalRecursive(locationOfYellowOrRedPieces,locationOfYellowOrRedPieces[0],1,0,None)
+	if foundFourInRow:
+		return isRed
 
 
 def checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns):
@@ -260,23 +249,53 @@ def checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns):
 		return None
 	return True
 	
-def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,startingPieceIndex):
+#er problemet måske at når vi kigger i en retning og kalder funktionen - vil vi næste iteration igen kigge i alle retning.
+#Og det kan give infinite loops fordi når vi når enden kan vi bare gå tilbage igen. eller andre steder hen
+#For hver retning kan laves en string der siger hvilken vej, og så skal den have den string for at gå den vej.
+def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,startingPieceIndex,direction):
 	#validWidthValues = [_ for x in range(1,8)] #pieceLocation[0]+1 in validHeightValues and pieceLocation[1]-1 in validWidthValues
 	#validHeightValues = [_ for x in range(1,7)]
+	global foundFourInRow
+	if (foundFourInRow):
+		return True #PLZ FUCKING STOP DIN SATANS REKURSIVE FUNKTION
+	print("-------------found 4 inarow------------------")
+	print(foundFourInRow)
+	print("--------------------------------------------")
 	if numFoundInARow == 4:
-		return True
+		foundFourInRow = True #FORSØG PÅ AT LORTET STOPPER
 	#NW
-	if [pieceLocation[0]+1,pieceLocation[1]-1] in allPieceLocations: 
-		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex)
+	#print("-------------first piece------------------")
+	#print(pieceLocation)
+	#print("--------------------------------------------")
+	print("-------------num in row------------------")
+	print(numFoundInARow)
+	print("--------------------------------------------")
+	#mulige problemer:
+		#Tjek om den bevæger sig rigtigt NW,NE osv.
+		#Tjek om den går til næste brik hvis den ikke kan gå nogle vegne
+		#få shortcircuitet når den er færdig. lav en variabel som der tjekkes efter i øverst af funktionen og tag den med igennem funktionen
+		#Hmm, hvis bare der er 4 på stribe virker den faktisk. det er kun hvis den ikke kan finde det.
+			#derfor skal den afsluttes ordentligt
+	#NW	
+	print("---------------------------")
+	#print(f"WHY DOES THIS {[pieceLocation[0]+1,pieceLocation[1]-1]} EQUAL THIS??? {list(allPieceLocations)}")
+	#print([pieceLocation[0]+1,pieceLocation[1]-1] in list(allPieceLocations))
+	print("---------------------------")
+
+
+	if (direction == "NW" or direction == None) and ([pieceLocation[0]+1,pieceLocation[1]-1] in allPieceLocations.tolist()): 
+		print("NW")
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex,"NW")
 	#NE
-	if [pieceLocation[0]+1,pieceLocation[1]+1] in allPieceLocations: 
-		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex)
+	if (direction == "NE" or direction == None) and ([pieceLocation[0]+1,pieceLocation[1]+1] in allPieceLocations.tolist()): 
+		print("NE")
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]+1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex,"NE")
 	#SW
-	if [pieceLocation[0]-1,pieceLocation[1]-1] in allPieceLocations: 
-		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex)
+	if (direction == "SW" or direction == None) and [pieceLocation[0]-1,pieceLocation[1]-1] in allPieceLocations.tolist(): 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]-1],numFoundInARow+1,startingPieceIndex,"SW")
 	#SE
-	if [pieceLocation[0]-1,pieceLocation[1]+1] in allPieceLocations: 
-		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex)
+	if (direction == "SE" or direction == None) and [pieceLocation[0]-1,pieceLocation[1]+1] in allPieceLocations.tolist(): 
+		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex,"SE")
 	#check if checked piece is last piece
 	#print(f"{pieceLocation} == {allPieceLocations[-1]}")
 	#if (pieceLocation[0] == allPieceLocations[-1][0] and pieceLocation[1] == allPieceLocations[-1][1]):
@@ -284,82 +303,22 @@ def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,starti
 	#calls for next piece if no piece in 4 corners
 	#print(list(allPieceLocations))
 	#print(list(allPieceLocations).index(pieceLocation)+1)
-	nextPieceIndex = allPieceLocations.tolist().index(allPieceLocations.tolist()[startingPieceIndex])+1
+	
+	if direction == None:
+		nextPieceIndex = allPieceLocations.tolist().index(allPieceLocations.tolist()[startingPieceIndex])+1
+		print("-------------next piece------------------")
+		print(allPieceLocations[nextPieceIndex])
+		print("-------------------------------")
+
+		if nextPieceIndex+1 == len(allPieceLocations):
+			print(nextPieceIndex)
+			print("stop")
+			return False
+
 	#print(f"NPI: {nextPieceIndex}")
-	if nextPieceIndex+1 == len(allPieceLocations):
-		print("stop")
-		return False
-	checkDiagonalRecursive(allPieceLocations,allPieceLocations[nextPieceIndex],0,nextPieceIndex)
-#except Exception as e:
-	#print(f"Error on line {sys.exc_info()[-1].tb_lineno}")
-	#print(e)
-
-		#den kan ikke køre den sidste - det med at stoppe når den er nået den sidste kører ikke - i linje 286 er jeg stuck i et infinite recursive loop
-
-	#starte fra en af dem - se om der er brikker i alle 4 hjørner
-		#hvis der er - så tjek de 4 hjørner for den (hvis flere skal der også tjekkes de 4 hjørner for den anden
-		#vi skal ikke tjekke out of bounds
-
-		#print(piece[0],piece[1])
-	
+		checkDiagonalRecursive(allPieceLocations,allPieceLocations[nextPieceIndex],1,nextPieceIndex,None)
 
 
-	##print(numInRows,numInColumns)
-	#counter = 0
-	#i = 1
-#	print("\n")
-#	for i in range(8):
-#		print(counter)
-#		if counter == 4:
-#			break
-#		if (numInRows[i] > 0 and numInColumns[i] > 0):
-#			counter += 1
-#		else:
-#			counter = 0
-#	if counter != 4:
-#		return
-#	print(i)
-
-
-	
-	
-	#for numInRow in numInRows: #for some reason it cant do both loops at the same time - tuple unpacking says too many values even though it isnt.
-	#	if counter == 4:
-	#		for numInColumn in numInColumns:
-	#
-	#	if numInRow > 0:
-	#		counter += 1
-
-	#for rowOrColumn in numInRows,numInColumns: #counter skal gå op hvis den matcher både række og col
-	#	print(f"rowCol: {rowOrColumn}")
-	#	for x in rowOrColumn:
-	#		print(f"x is {x}")
-	#	pass #grabbed both. now do for loop over both of them - to find min 1 på 4 rækker/kolonner i streg
-	#for row,column in numInRows,numInColumns:
-	#	print()
-	#if (der bliver klikket på skærmen
-	#global running
-	#running = False
-
-	#show pictures from playerWon
-	#der skal tjekkes for hvem playeren er:
-	
-
-
-						#DET VIRKER. DER SKAL BARE LAVES EN FUNKTION FOR NÅR MAN VINDER - LAV dette til en funktion måske som kan se på både vandret / lodret
-						
-
-					#nu skal den lede i numYellowOrRedPieces efter der hvor vores rows er row
-
-					#print("The row is "+ str(numInRows.index(row)))
-
-			#de er for some reason altid sorteret, så bare start et sted og tæl op
-
-		#hvis der er 4 ens tal i enten x eller y, er der en chance for at de kan findes vandred/lodret
-			#4 ens tal = at der er 4 på samme række/kolonne
-			#her skal man blot starte fra en af dem og se om de er en ved siden af.
-
-	#make piece from Piece object - put it in position depending on
 
 gameboard = Gameboard()
 #21 af hver - lav alle brikkerne på forhånd i lister - kombiner med columnIsNotFull()
@@ -424,6 +383,45 @@ def columnNotFull(column):
 	return False
 
 
+def tieGamePreEndScreen():
+	blinkImage("billeder/waitInput/ClickToProceed.PNG",444)
+	pass
+def preEndScreen(whoWonIsRed):
+	blinkImage("billeder/waitInput/ClickToProceed.PNG",444)
+
+def blinkImage(imageLocation,imageWidth):
+	gameProceeded = False
+	isBlinking = False
+	clock = pygame.time.Clock()
+	image = pygame.image.load(imageLocation)
+	position = (GAMEBOARD_WIDTH/2-imageWidth/2,GAMEBOARD_HEIGHT/2) #444 is the width of the image
+	
+	while not gameProceeded:
+		clock.tick(10)
+		if isBlinking:
+			window.blit(image,SENTINEL_POSITION)
+			isBlinking = False
+		isBlinking = True 
+		pygame.display.update()
+
+		#whatWillBeDisplayed = []
+		#whatWillBeDisplayed.append(window.blit(image,position))
+		#pygame.time.delay(500)
+		#pygame.display.update(whatWillBeDisplayed)
+		#window.blit(image,SENTINEL_POSITION)
+		#whatWillBeDisplayed.clear()
+		#pygame.display.update()
+		for event in pygame.event.get(): 
+			if event.type == pygame.MOUSEBUTTONUP:
+				gameProceeded = True
+				break
+			if event.type == pygame.QUIT:
+				pygame.quit()
+		print(gameProceeded)
+		clock.tick(10)
+	print("stop")
+	
+	
 
 
 #prøv og lav main menu. se hvordan det virker
@@ -431,11 +429,12 @@ def mainMenu():
 	print("hello")
 	#pygame.quit()
 
-def endScreen(whoWonIsRed,endScreenRunning):#whoWonIsRed is a boolean
+def endScreen(whoWonIsRed,endScreenRunning):#whoWonIsRed is a boolean -----except if it was a tied game
 	while endScreenRunning:
-		print("hh")
-		print("game is done")
-		if whoWonIsRed:
+		if whoWonIsRed == "tie":
+			print("TIE")
+			winScreen = pygame.image.load("billeder/playerWon/draw.png")
+		elif whoWonIsRed == True:
 			print("red")
 			winScreen = pygame.image.load("billeder/playerWon/1_red.png")
 		else:
@@ -467,18 +466,22 @@ def mainGame():
 				#pygame.quit()
 				running = False
 			if event.type == pygame.MOUSEBUTTONUP:
+				blinkImage("billeder/waitInput/ClickToProceed.PNG",444) #slet igen
 				clickedPos = pygame.mouse.get_pos()
 				#print(clickedPos)
 				global column
 				column = gamePosToCodePos(clickedPos)
-				time.sleep(0.1)
+				time.sleep(0.1)	
 				if (validColumnSelected(column) and columnNotFull(column)):
-					#print(f"WHAT IS IT: {gameboard.isRedsTurn}")
 					a = doPlayerTurn(column,gameboard.isRedsTurn)
 					if a != None:
 						pygame.display.update()
+						if a == "tie":
+							tieGamePreEndScreen()
+							endScreen(a,True)
 						time.sleep(1) #burde nok skrive hvem der vandt her i stedet ... , eller i hvert fald gøre så der kan klikke spå en tast for at gå videre
 						running = False
+						preEndScreen(a)
 						endScreen(a, True)
 						#running = False
 				#pos = pygame.mouse.get_pos()
@@ -499,5 +502,5 @@ pygame.quit()
 #to do:
 	#main menu
 		#vælg farve
-	#diagonalt
-	#nederste cirkel går lige ned under boarded
+	#end screen skal ikke ske lige med det samme - først skal der stå med småt nede under brættet (så skal der stå press any button to continue på skærmen
+	#hvis alle brikker er sat uden nogle vindere er den uafgjort
