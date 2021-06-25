@@ -26,10 +26,12 @@ WHITE = (255, 255, 255)
 BLACK = (0,0,0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 128)
+#LIGHT_BLUE = (121, 140, 219)
 LIGHT_BLUE = (30,144,255)
 
 #global variable:
 running = True
+itemsOnScreen=[]
 
 pygame.init()
 logo = pygame.image.load("billeder/logo.png")
@@ -40,6 +42,7 @@ blackImage = pygame.image.load("billeder/black.png")
 blackImagePosition = (0,GAMEBOARD_HEIGHT)
 
 bg = pygame.image.load('billeder/bg.png')
+itemsOnScreen.append(bg)
 
 #takes x,y returns x,y
 def codePosToGamePosRect(codeY,codeX): 
@@ -75,10 +78,12 @@ class Piece():
 		self.row = row
 		self.column = column
 		self.isRed = isRed
-		#gamePosOfRow,gamePosOfColumn = codePosToGamePosRect(row,column) #possible rect
+		#gamePosOfRow,gamePosOfColumn = codePosToGamePosRect(row,column)
 		gamePosOfRow,gamePosOfColumn = codePosToGamePosCircle(self.row,self.column)
+		#print(gamePosOfRow)
+		#print(gamePosOfColumn)
 		pygame.draw.circle(window,RED if self.isRed else YELLOW,(gamePosOfColumn,gamePosOfRow-2),PIECE_RADIUS+5) #+5 and -2 to make sure all is covered
-		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #possible rect
+		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #lav cirkler i stedet?
 
 
 
@@ -111,6 +116,7 @@ class Gameboard:
 		self.piecesInGameboardArray[piecesInColumn+1][column] = 1 if isRed else 2 #add piece to code
 		self.addPieceToVisualGameboard(isRed,piecesInColumn+1,column) #add piece visually
 		self.columnCounter[column] += 1 
+		#print(self.piecesInGameboardArray)
 	def addPieceToVisualGameboard(self,isRed,row,column):
 		self.pieces.append(Piece(isRed,row,column))
 	def checkWinCondition(self,isRed): #only checks it for one color - the one recently placed
@@ -403,6 +409,9 @@ redRadioButton = radioButtonPlayerText(RED,"Red:",250,200)
 
 yellowRadioButtons = [RadioButton(True,YELLOW,True,150,240),RadioButton(False,YELLOW,False,150,310)]
 redRadioButtons = [RadioButton(False,RED,True,240,240),RadioButton(True,RED,False,240,310)]
+playerRedTurn = PlayerTurnDisplay(True if player1RadioButton.color == RED else False,1) #player 1
+playerYellowTurn = PlayerTurnDisplay(True if player2RadioButton.color == RED else False,2)# player 2
+
 
 def columnOfMouseclick(): #returns false if it is an invalid position - else return the column of which it is. (starting at 0)
 	for index,hitbox in enumerate(hitboxes):
@@ -414,9 +423,9 @@ def doPlayerTurn(columnToPlacePiece,isRed):
 	gameboard.addPieceToGameboard(column,isRed)
 	if len(gameboard.pieces) != 0:
 		gameboard.isIntialTurn = False
-	endGameState = gameboard.checkWinCondition(isRed) #a is used so we can get back to the main loop
-	if endGameState != None:
-		return endGameState
+	a = gameboard.checkWinCondition(isRed) #a is used so we can get back to the main loop
+	if a != None:
+		return a
 	else:
 		nextPlayersTurn()
 
@@ -424,9 +433,9 @@ def doPlayerTurn(columnToPlacePiece,isRed):
 def nextPlayersTurn():
 	gameboard.nextTurn()
 	if gameboard.isRedsTurn:
-		player1Turn.whoseTurnIsItAnyway(True)
+		playerRedTurn.whoseTurnIsItAnyway(True)
 	else:
-		player2Turn.whoseTurnIsItAnyway(False)
+		playerYellowTurn.whoseTurnIsItAnyway(False)
 
 
 
@@ -462,9 +471,9 @@ def preEndScreen(whoWonIsRed):
 	wonImagePosition = (GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT) #160 is the width of the image
 	waitInputPosition = (GAMEBOARD_WIDTH/2-444/2,GAMEBOARD_HEIGHT/2-159/2) #
 	if whoWonIsRed:
-		wonImage = player1Turn.playerWonText
+		wonImage = playerRedTurn.playerWonText
 	else:
-		wonImage = player2Turn.playerWonText
+		wonImage = playerYellowTurn.playerWonText
 	while not mouseClicked:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -622,7 +631,6 @@ def mainMenu():
 		window.blit(player2RadioButton.text,player2RadioButton.textRect)
 		window.blit(yellowRadioButton.text,yellowRadioButton.textRect)
 		window.blit(redRadioButton.text,redRadioButton.textRect)
-
 		#text over button
 		#print("hello")
 		for event in pygame.event.get():
@@ -644,11 +652,6 @@ def mainMenu():
 					redRadioButtons[1].hasBeenActivated = True
 		pygame.display.update()
 	if hasStarted:
-		gameboard.isIntialTurn = True
-		global player1Turn
-		player1Turn = PlayerTurnDisplay(True if player1RadioButton.color == RED else False,1) #player 1
-		global player2Turn
-		player2Turn = PlayerTurnDisplay(True if player2RadioButton.color == RED else False,2)# player 2
 		mainGame()
 
 	#pygame.quit()
@@ -687,28 +690,30 @@ def mainGame():
 		#playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
 		if gameboard.isIntialTurn:
 			window.blit(blackImage,blackImagePosition)
-			player1Turn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
+			playerRedTurn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
 		for event in pygame.event.get(): 
 			if event.type == pygame.QUIT:
 				#pygame.display.quit()
 				#pygame.quit()
 				running = False
 			if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+				#blinkImage("billeder/waitInput/ClickToProceed.PNG",444) #slet igen
 				clickedPos = pygame.mouse.get_pos()
+				#print(clickedPos)
 				global column
 				column = gamePosToCodePos(clickedPos)
 				time.sleep(0.1)	
 				if (validColumnSelected(column) and columnNotFull(column)):
-					endGameState = doPlayerTurn(column,gameboard.isRedsTurn)
-					if endGameState != None:
+					a = doPlayerTurn(column,gameboard.isRedsTurn)
+					if a != None:
 						pygame.display.update()
-						if endGameState == "tie":
+						if a == "tie":
 							drawGamePreEndScreen()
-							endScreen(endGameState,True)
+							endScreen(a,True)
 						time.sleep(1) #burde nok skrive hvem der vandt her i stedet ... , eller i hvert fald gøre så der kan klikke spå en tast for at gå videre
 						running = False
-						preEndScreen(endGameState)
-						endScreen(endGameState, True)
+						preEndScreen(a)
+						endScreen(a, True)
 						#running = False
 				#pos = pygame.mouse.get_pos()
 				#clickedColumn = columnOfMouseclick()
