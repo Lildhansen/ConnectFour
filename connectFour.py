@@ -83,23 +83,27 @@ class Piece():
 
 
 #helper for Gameboard self.piecesInGameboardArray:
-a = [[0]*8 for y in range(7)]
-i = 0
-while i < 7:
-	a[0][i] = SENTINEL_VALUE
-	a[i][0] = SENTINEL_VALUE
-	i += 1
-a[0][7] = SENTINEL_VALUE 
+def createIntialBoard():
+	intialBoard = [[0]*8 for y in range(7)]
+	i = 0
+	while i < 7:
+		intialBoard[0][i] = SENTINEL_VALUE
+		intialBoard[i][0] = SENTINEL_VALUE
+		i += 1
+	intialBoard[0][7] = SENTINEL_VALUE 
+	return intialBoard
 
 class Gameboard:
-	def __init__(self):
+	def __init__(self,redIsPlayer1):
 		#this value counts how many brikker that is in each of the columns (1-7 columns) - (0-6 pieces in each column)
 		self.columnCounter = [SENTINEL_VALUE,0,0,0,0,0,0,0]#first value is sentiel, since columns start from 1 - rest have 0 in them to begin with
 		# 0 = empty 1 = red, 2 = yellow SENTINEL_VALUE = invalid Position
-		self.piecesInGameboardArray = a
+		self.piecesInGameboardArray = createIntialBoard
 		self.pieces = []#DO NOT TOUCH - for all the pieces
-		self.isRedsTurn = True #maybe not always
+		self.isRedsTurn = redIsPlayer1
 		self.isIntialTurn = True
+		self.npPiecesInGameboardArray = []
+		self.locationOfYellowOrRedPieces = []
 	def returnIsRedsTurn(self): #Tør ikke slette den
 		return self.isRedsTurn()
 	def nextTurn(self):
@@ -113,29 +117,29 @@ class Gameboard:
 		self.columnCounter[column] += 1 
 	def addPieceToVisualGameboard(self,isRed,row,column):
 		self.pieces.append(Piece(isRed,row,column))
+	def resetGameboard(self):
+		self.pieces = [] #Not sure why this doenst have to be there
+		self.piecesInGameboardArray = createIntialBoard()
 	def checkWinCondition(self,isRed): #only checks it for one color - the one recently placed
-		npPiecesInGameboardArray = np.array(self.piecesInGameboardArray)
-		locationOfYellowOrRedPieces = np.argwhere(npPiecesInGameboardArray == (1 if isRed else 2))
-		#print(locationOfYellowOrRedPieces)
-		#print(locationOfYellowOrRedPieces[0][0])
-		if len(locationOfYellowOrRedPieces) > 3:
+		self.npPiecesInGameboardArray = np.array(self.piecesInGameboardArray) #prut
+		print(f"HERERERERR: {self.npPiecesInGameboardArray}")
+		self.locationOfYellowOrRedPieces = np.argwhere(self.npPiecesInGameboardArray == (1 if isRed else 2))
+		print(f"HERE2:::::: {self.locationOfYellowOrRedPieces}")
+		if len(self.locationOfYellowOrRedPieces) > 3:
 			numInRows = [0 for _ in range(7)] 
 			numInRows[0] = SENTINEL_VALUE
 			#numInRows[7] = SENTINEL_VALUE
 			numInColumns = [0 for _ in range(8)]
 			numInColumns[0] = SENTINEL_VALUE
-			for x,y in locationOfYellowOrRedPieces:
-				#print(numInColumns[x])
+			for x,y in self.locationOfYellowOrRedPieces:
 				numInRows[x] += 1
 				numInColumns[y] += 1
 				
-			#print(f"column: {numInColumns}")
-			#print(f"row: {numInRows}")
 			winningConditions = []
-			winningConditions.append(checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed))
-			winningConditions.append(checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed))	
+			winningConditions.append(checkHorizontal(numInRows,self.locationOfYellowOrRedPieces,isRed))
+			winningConditions.append(checkVertical(numInColumns,self.locationOfYellowOrRedPieces,isRed))	
 			#winningConditions.append(checkDiagonalNonRecurse(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed)) #den gøres nonrecurse for at se om det virker. ellers kaldes:
-			winningConditions.append(checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed))
+			winningConditions.append(checkDiagonal(numInRows,numInColumns,self.locationOfYellowOrRedPieces,isRed))
 			for condition in winningConditions:
 				if condition != None:
 					return condition
@@ -151,22 +155,18 @@ def checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed):
 				piecesInRow = []
 				columnsOfPiecesInRow = []
 				for piece in locationOfYellowOrRedPieces:
-					#print(f" numnum: {locationOfYellowOrRedPieces}")
 					if piece[0] == row:
-						#print(f"piece: {piece}, piece[0]: {piece[0]}")
 						piecesInRow.append(piece)
 				for row,column in piecesInRow:
 					columnsOfPiecesInRow.append(column)
 				counter = 1
 				i = 0
 				while i < len(columnsOfPiecesInRow)-1:
-					#print(f"i: {columnsOfPiecesInRow[i]}, i+1: {columnsOfPiecesInRow[i+1]-1}")
 					if (columnsOfPiecesInRow[i] == columnsOfPiecesInRow[i+1]-1):
 						counter += 1
 					else:
 						counter = 1
 					i += 1
-					#print(f"counter: {counter}")
 					if counter == 4:
 						#game won
 						return isRed
@@ -174,7 +174,6 @@ def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
 	for piecesInColumn in numInColumns:
 		if piecesInColumn > 3:
 			columnsWithMoreThan3Pieces = [i for i, x in enumerate(numInColumns) if x == piecesInColumn]
-			##print(f"col: {columnsWithMoreThan3Pieces}")
 			for column in columnsWithMoreThan3Pieces:
 				piecesInColumns = []
 				rowsOfPiecesInColumns = []
@@ -183,18 +182,15 @@ def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
 						piecesInColumns.append(piece)
 				for row,column in piecesInColumns:
 					rowsOfPiecesInColumns.append(row)
-				#print(piecesInColumns, rowsOfPiecesInColumns)
 				counter = 1
 				i = 0
 				while i < len(rowsOfPiecesInColumns)-1:
-					##print(f"counter {counter}")
 					if (rowsOfPiecesInColumns[i] == rowsOfPiecesInColumns[i+1]-1):
 						counter += 1	
 					else:
 						counter = 1
 					i+=1
 					if counter == 4:
-						##print(f"ENd {isRed}")
 						return isRed
 
 def checkDiagonalNonRecurse(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
@@ -211,8 +207,8 @@ def actuallyCheckDiagonalNonRecurse(allPieceLocations,pieceLocation):
 		pass
 
 def checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
-	#print(numInColumns)
-	print(locationOfYellowOrRedPieces)
+	print(f"HERE3:::::: {locationOfYellowOrRedPieces}")
+	print(f"HERE_SELF:::::: {locationOfYellowOrRedPieces}")
 	check = checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns)
 	if check == None:
 		return None
@@ -265,24 +261,6 @@ def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,starti
 	print("--------------------------------------------")
 	if numFoundInARow == 4:
 		foundFourInRow = True #FORSØG PÅ AT LORTET STOPPER
-	#NW
-	#print("-------------first piece------------------")
-	#print(pieceLocation)
-	#print("--------------------------------------------")
-	print("-------------num in row------------------")
-	print(numFoundInARow)
-	print("--------------------------------------------")
-	#mulige problemer:
-		#Tjek om den bevæger sig rigtigt NW,NE osv.
-		#Tjek om den går til næste brik hvis den ikke kan gå nogle vegne
-		#få shortcircuitet når den er færdig. lav en variabel som der tjekkes efter i øverst af funktionen og tag den med igennem funktionen
-		#Hmm, hvis bare der er 4 på stribe virker den faktisk. det er kun hvis den ikke kan finde det.
-			#derfor skal den afsluttes ordentligt
-	#NW	
-	print("---------------------------")
-	#print(f"WHY DOES THIS {[pieceLocation[0]+1,pieceLocation[1]-1]} EQUAL THIS??? {list(allPieceLocations)}")
-	#print([pieceLocation[0]+1,pieceLocation[1]-1] in list(allPieceLocations))
-	print("---------------------------")
 
 
 	if (direction == "NW" or direction == None) and ([pieceLocation[0]+1,pieceLocation[1]-1] in allPieceLocations.tolist()): 
@@ -298,13 +276,6 @@ def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,starti
 	#SE
 	if (direction == "SE" or direction == None) and [pieceLocation[0]-1,pieceLocation[1]+1] in allPieceLocations.tolist(): 
 		checkDiagonalRecursive(allPieceLocations,[pieceLocation[0]-1,pieceLocation[1]+1],numFoundInARow+1,startingPieceIndex,"SE")
-	#check if checked piece is last piece
-	#print(f"{pieceLocation} == {allPieceLocations[-1]}")
-	#if (pieceLocation[0] == allPieceLocations[-1][0] and pieceLocation[1] == allPieceLocations[-1][1]):
-	#	return False
-	#calls for next piece if no piece in 4 corners
-	#print(list(allPieceLocations))
-	#print(list(allPieceLocations).index(pieceLocation)+1)
 	
 	if direction == None:
 		nextPieceIndex = allPieceLocations.tolist().index(allPieceLocations.tolist()[startingPieceIndex])+1
@@ -316,13 +287,11 @@ def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,starti
 			print(nextPieceIndex)
 			print("stop")
 			return False
-
-	#print(f"NPI: {nextPieceIndex}")
 		checkDiagonalRecursive(allPieceLocations,allPieceLocations[nextPieceIndex],1,nextPieceIndex,None)
 
 
 
-gameboard = Gameboard()
+#gameboard = Gameboard()
 #21 af hver - lav alle brikkerne på forhånd i lister - kombiner med columnIsNotFull()
 
 class radioButtonPlayerText():
@@ -375,17 +344,20 @@ class RadioButton():
 		if self.button.collidepoint(position):
 			return True
 
+#player doesnt have their correct image. also whose turn is it anyways is fucked
 class PlayerTurnDisplay: #create 2 instances - with each color, and make the other one invisible/have white color when not their turn / change its position to out of bounds
 	def __init__(self,isRed,player):
 		self.textbox = pygame.draw.rect(window,(0,0,0),(0,480,640,40))
 		self.playerText = pygame.image.load(f"billeder/playerTurn/{str(player)}_{'red' if isRed else 'yellow'}.png")
 		self.playerWonText = pygame.image.load(f"billeder/smallPlayerWon/{str(player)}_{'red' if isRed else 'yellow'}.png")
-		self.isRed = isRed
+		self.playerWonTextFinal = pygame.image.load(f"billeder/playerWon/{str(player)}_{'red' if isRed else 'yellow'}.png")
 		self.player = player
+		self.isRed = isRed
 		self.position = (GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT) #160 is the width of the image
-	def whoseTurnIsItAnyway(self,redsTurn):
+	def whoseTurnIsItAnyway(self,redsTurn): #prut
+		print(f"it is{'' if redsTurn else ' not'} reds turn for player: {self.player}")
+		print(f"player {self.player} is{'' if self.isRed else ' not'} red")
 		if (redsTurn and self.isRed) or (not redsTurn and not self.isRed):
-			#print(f"{self.isRed} --------- {redsTurn}")
 			self.displayWhoseTurn(self.position)
 		else:
 			self.displayWhoseTurn(SENTINEL_POSITION)
@@ -424,11 +396,22 @@ def doPlayerTurn(columnToPlacePiece,isRed):
 def nextPlayersTurn():
 	gameboard.nextTurn()
 	if gameboard.isRedsTurn:
-		player1Turn.whoseTurnIsItAnyway(True)
+		if player1Turn.isRed:
+			player1Turn.whoseTurnIsItAnyway(True)
+		else:
+			player2Turn.whoseTurnIsItAnyway(True)
 	else:
-		player2Turn.whoseTurnIsItAnyway(False)
+		if not player1Turn.isRed:
+			player1Turn.whoseTurnIsItAnyway(False)
+		else:
+			player2Turn.whoseTurnIsItAnyway(False)
 
 
+def findPlayerWhoWonBasedOnIfHeIsRedOrNot(isRed):
+	if player1Turn.isRed == isRed:
+		return player1Turn
+	else:
+		return player2Turn
 
 
 def validColumnSelected(column):
@@ -462,9 +445,15 @@ def preEndScreen(whoWonIsRed):
 	wonImagePosition = (GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT) #160 is the width of the image
 	waitInputPosition = (GAMEBOARD_WIDTH/2-444/2,GAMEBOARD_HEIGHT/2-159/2) #
 	if whoWonIsRed:
-		wonImage = player1Turn.playerWonText
+		if player1Turn.isRed:
+			wonImage = player1Turn.playerWonText
+		else:
+			wonImage = player2Turn.playerWonText
 	else:
-		wonImage = player2Turn.playerWonText
+		if not player1Turn.isRed:
+			wonImage = player1Turn.playerWonText
+		else:
+			wonImage = player2Turn.playerWonText
 	while not mouseClicked:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -511,7 +500,7 @@ def blinkImage(imageLocation,imageWidth):
 #need some way to reset game when starting over - when coming to the main menu again.
 #call this when getting to main menu. in main menu do a check to see if it is the first game or not (like if pieces is empty or not)
 def resetGame():
-	pass
+	gameboard.resetGameboard()
 
 class StartGameButton:
 	def __init__(self):
@@ -588,7 +577,16 @@ def fixRadioButtonsVisually():
 		if self.textRect.collidepoint(position):
 			return True
 
-
+def prepareMainGame():
+	global gameboard
+	gameboard = Gameboard(True if player1RadioButton.color == RED else False)
+	gameboard.isIntialTurn = True
+	global player1Turn
+	player1Turn = PlayerTurnDisplay(True if player1RadioButton.color == RED else False,1) #player 1
+	global player2Turn
+	player2Turn = PlayerTurnDisplay(True if player2RadioButton.color == RED else False,2)# player 2
+	gameboard.pieces = []
+	resetGame()
 
 #yellowRadioButtons = [RadioButton(True,YELLOW,True),RadioButton(False,YELLOW,False)]
 #redRadioButtons = [RadioButton(False,RED,True),RadioButton(True,RED,False)]
@@ -617,14 +615,10 @@ def mainMenu():
 		fixRadioButtons()
 		fixRadioButtonsVisually()
 		#buttonText
-		#print(player1RadioButton.color)
 		window.blit(player1RadioButton.text,player1RadioButton.textRect)
 		window.blit(player2RadioButton.text,player2RadioButton.textRect)
 		window.blit(yellowRadioButton.text,yellowRadioButton.textRect)
 		window.blit(redRadioButton.text,redRadioButton.textRect)
-
-		#text over button
-		#print("hello")
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				running = False
@@ -644,30 +638,20 @@ def mainMenu():
 					redRadioButtons[1].hasBeenActivated = True
 		pygame.display.update()
 	if hasStarted:
-		gameboard.isIntialTurn = True
-		global player1Turn
-		player1Turn = PlayerTurnDisplay(True if player1RadioButton.color == RED else False,1) #player 1
-		global player2Turn
-		player2Turn = PlayerTurnDisplay(True if player2RadioButton.color == RED else False,2)# player 2
+		prepareMainGame()
 		mainGame()
 
-	#pygame.quit()
-
-def endScreen(whoWonIsRed,endScreenRunning):#whoWonIsRed is a boolean -----except if it was a tied game'
+def endScreen(whoWonIsRed,endScreenRunning):
 	hasExited = False
+	playerWhoWon = findPlayerWhoWonBasedOnIfHeIsRedOrNot(gameboard.isRedsTurn) #whoevers turn it is, is the one who won
 	while endScreenRunning:
-		if whoWonIsRed == "tie":
-			print("TIE")
-			winScreen = pygame.image.load("billeder/playerWon/draw.png")
-		elif whoWonIsRed == True:
-			print("red")
-			winScreen = pygame.image.load("billeder/playerWon/1_red.png")
-		else:
-			print("yellow")
-			winScreen = pygame.image.load("billeder/playerWon/2_yellow.png")
 		window.fill((0,0,0))
 		pygame.draw.rect(window,(0,0,0),(0,0,GAMEBOARD_WIDTH,GAMEBOARD_HEIGHT+40))
-		window.blit(winScreen,(0,0)) 
+		if whoWonIsRed == "tie":
+			print("TIE")
+			window.blit(pygame.image.load("billeder/playerWon/draw.png"),(25,130))
+		else:
+			window.blit(playerWhoWon.playerWonTextFinal,(0,0)) 
 		for event in pygame.event.get():
 			if (event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN) or (event.type == pygame.MOUSEBUTTONUP and event.button == 1):
 				endScreenRunning = False
@@ -677,57 +661,44 @@ def endScreen(whoWonIsRed,endScreenRunning):#whoWonIsRed is a boolean -----excep
 		pygame.display.update()
 	if not hasExited:
 		mainMenu()
-#column = ""
+	else:
+		print("here")
 
 def mainGame():
 	window.fill(WHITE)
 	running = True
 	while running:
 		window.blit(bg,[0,0])
-		#playerYellowTurn.displayWhoseTurn((640/2-(160/2),480)) #for debugging purpose - tjek dog størrelser - især find en måde at se størrelse på billede med pygame
 		if gameboard.isIntialTurn:
 			window.blit(blackImage,blackImagePosition)
 			player1Turn.displayWhoseTurn((GAMEBOARD_WIDTH/2-160/2,GAMEBOARD_HEIGHT))
 		for event in pygame.event.get(): 
 			if event.type == pygame.QUIT:
-				#pygame.display.quit()
-				#pygame.quit()
 				running = False
 			if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-				clickedPos = pygame.mouse.get_pos()
+				clickedPos = pygame.mouse.get_pos()	
 				global column
 				column = gamePosToCodePos(clickedPos)
-				time.sleep(0.1)	
+				#time.sleep(0.1)	
 				if (validColumnSelected(column) and columnNotFull(column)):
 					endGameState = doPlayerTurn(column,gameboard.isRedsTurn)
 					if endGameState != None:
+						running = False
 						pygame.display.update()
 						if endGameState == "tie":
 							drawGamePreEndScreen()
-							endScreen(endGameState,True)
-						time.sleep(1) #burde nok skrive hvem der vandt her i stedet ... , eller i hvert fald gøre så der kan klikke spå en tast for at gå videre
-						running = False
-						preEndScreen(endGameState)
-						endScreen(endGameState, True)
-						#running = False
-				#pos = pygame.mouse.get_pos()
-				#clickedColumn = columnOfMouseclick()
-				#x = columnIsNotFull(clickedColumn)
-				#if clickedColumn and x:
-				#	addPiece()
+						else:
+							preEndScreen(endGameState)
 		pygame.display.update()
+	endScreen(endGameState, True)
+	
 
-#a,b = mainGame()
-#a,b = True,True
-#endScreen(a,b)
-
-#mainGame()
 mainMenu()
 pygame.quit()
 
 
-#to do:
-	#main menu
-		#vælg farve
-	#end screen skal ikke ske lige med det samme - først skal der stå med småt nede under brættet (så skal der stå press any button to continue på skærmen
-	#hvis alle brikker er sat uden nogle vindere er den uafgjort
+#problemer:
+"""
+se om spillet kan lukke i alle iterationer
+man kan kun spille et spil - fix reset game
+"""
