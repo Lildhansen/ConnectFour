@@ -62,6 +62,7 @@ def gamePosToCodePos(gamePos): #works only for checking what column is pressed -
 		count += 1
 	return count
 
+#class representation of each piece, alltogether put into the gameboard
 class Piece():
 	def __init__(self,isRed,row,column):
 		self.row = row
@@ -85,6 +86,7 @@ def createIntialBoard():
 	intialBoard[0][7] = SENTINEL_VALUE 
 	return intialBoard
 
+#the Gameboard itself which will contain all the pieces (visually and logically), as well as handling some part of the turn logic and checking win condition
 class Gameboard:
 	def __init__(self,redIsPlayer1):
 		#this value counts how many brikker that is in each of the columns (1-7 columns) - (0-6 pieces in each column)
@@ -136,7 +138,7 @@ class Gameboard:
 			if (len(gameboard.pieces) == MAX_PIECES):
 				return "tie"
 
-
+#checks win condition horizontally
 def checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed):
 	for	piecesInRow in numInRows:
 		if piecesInRow > 3: #dvs der er mindst 4 på samme række:
@@ -160,7 +162,7 @@ def checkHorizontal(numInRows,locationOfYellowOrRedPieces,isRed):
 					if counter == 4:
 						#game won
 						return isRed
-
+#checks win condition vertically
 def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
 	for piecesInColumn in numInColumns:
 		if piecesInColumn > 3:
@@ -183,7 +185,7 @@ def checkVertical(numInColumns,locationOfYellowOrRedPieces,isRed):
 					i+=1
 					if counter == 4:
 						return isRed
-
+#checks win condition diagonally
 def checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
 	check = checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns)
 	if check == None:
@@ -194,7 +196,7 @@ def checkDiagonal(numInRows,numInColumns,locationOfYellowOrRedPieces,isRed):
 	if foundFourInRow:
 		return isRed
 
-
+#helper function used to reduce complexity of checkDiagonal
 def checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns):
 	count = 0
 	for numInColumn in numInColumns: #make extra checks to prevent huge complexity
@@ -222,7 +224,8 @@ def checkForAtLeast1PieceIn4ConsecutiveRowsAndColumns(numInRows,numInColumns):
 	if count < 4:
 		return None
 	return True
-	
+
+#recursive function used to check win conditions diagonally in checkDiagonal
 def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,startingPieceIndex,direction):
 	global foundFourInRow
 	if (foundFourInRow):
@@ -259,10 +262,7 @@ def checkDiagonalRecursive(allPieceLocations,pieceLocation,numFoundInARow,starti
 		checkDiagonalRecursive(allPieceLocations,allPieceLocations[nextPieceIndex],1,nextPieceIndex,None)
 
 
-
-#gameboard = Gameboard() 
-#21 af hver - lav alle brikkerne på forhånd i lister - kombiner med columnIsNotFull()
-
+#class representation of the player text used for the radio button
 class radioButtonPlayerText():
 	def __init__(self,color,text,x,y):
 		self.textString = text
@@ -280,6 +280,8 @@ class radioButtonPlayerText():
 		else:
 			self.color = RED
 		self.text = self.font.render(self.textString, True, self.color, LIGHT_BLUE)
+
+#the color text used for the radio button
 class radioButtonColorText():
 	def __init__(self,color,text,x,y):
 		self.color = color
@@ -290,6 +292,7 @@ class radioButtonColorText():
 		self.textRect = self.text.get_rect()
 		self.textRect.center = (x,y)
 
+#the radiobutton itself
 class RadioButton():
 	def __init__(self,isActivated,color,forPlayerOne,x,y):
 		self.isActivated = isActivated
@@ -313,8 +316,8 @@ class RadioButton():
 		if self.button.collidepoint(position):
 			return True
 
-#player doesnt have their correct image. also whose turn is it anyways is fucked
-class PlayerTurnDisplay: #create 2 instances - with each color, and make the other one invisible/have white color when not their turn / change its position to out of bounds
+#the bottom text describing whose turn it is.
+class PlayerTurnDisplay: 
 	def __init__(self,isRed,player):
 		self.textbox = pygame.draw.rect(window,(0,0,0),(0,480,640,40))
 		self.playerText = pygame.image.load(f"billeder/playerTurn/{str(player)}_{'red' if isRed else 'yellow'}.png")
@@ -329,7 +332,6 @@ class PlayerTurnDisplay: #create 2 instances - with each color, and make the oth
 		else:
 			self.displayWhoseTurn(SENTINEL_POSITION)
 	def displayWhoseTurn(self,position): #sentinel position if not active - otherwise defined position #must be tuple or list of position x,y
-		#denne funktion skal kaldes af en anden funktion
 		window.blit(self.playerText,position)
 	def removeDisplayWhoseTurn(self,position):
 		window.blit(self.playerText,position) # 
@@ -343,6 +345,7 @@ redRadioButton = radioButtonPlayerText(RED,"Red:",250,200)
 yellowRadioButtons = [RadioButton(True,YELLOW,True,150,240),RadioButton(False,YELLOW,False,150,310)]
 redRadioButtons = [RadioButton(False,RED,True,240,240),RadioButton(True,RED,False,240,310)]
 
+#the function that handles a players turn if the selected a valid spot for their piece
 def doPlayerTurn(columnToPlacePiece,isRed):
 	gameboard.addPieceToGameboard(column,isRed)
 	if len(gameboard.pieces) != 0:
@@ -353,7 +356,7 @@ def doPlayerTurn(columnToPlacePiece,isRed):
 	else:
 		nextPlayersTurn()
 
-
+#makes sure its the correct player's turn - also that it is the correct color
 def nextPlayersTurn():
 	gameboard.nextTurn()
 	if gameboard.isRedsTurn:
@@ -374,16 +377,15 @@ def findPlayerWhoWonBasedOnIfHeIsRedOrNot(isRed):
 	else:
 		return player2Turn
 
-
+#returns bool for whether the column selected is valid or not.
 def validColumnSelected(column):
 	return bool(column)
 
+#returns false if the colum is full, otherwise true
 def columnNotFull(column):
-	if gameboard.columnCounter[column] < 6:
-		return True
-	return False
+	return gameboard.columnCounter[column] < 6
 
-
+#
 def drawGamePreEndScreen():
 	mouseClicked = False
 	drawImage = pygame.image.load("billeder/smallPlayerWon/draw.PNG")
@@ -425,7 +427,7 @@ def preEndScreen(whoWonIsRed):
 		window.blit(waitInputImage,waitInputPosition)
 		pygame.display.update()
 
-#DOESNT WORK
+#DOESNT WORK - but an attempt at making an image blink.
 def blinkImage(imageLocation,imageWidth):
 	gameProceeded = False
 	isBlinking = False
@@ -544,17 +546,7 @@ def prepareMainGame():
 	gameboard.pieces = []
 	gameboard.resetGameboard()
 
-#yellowRadioButtons = [RadioButton(True,YELLOW,True),RadioButton(False,YELLOW,False)]
-#redRadioButtons = [RadioButton(False,RED,True),RadioButton(True,RED,False)]
-#radioButtons = RadioButtons()
-
-#i hovedmenuen skal der være en vælg farve. måske noget ala radio buttons
-	#de skal have default værdi
-	#deres navn (player x) skal skifte til den farve de vælger
-	#måske tilføj senere at de kan vælge mellem 5 farver
-	#også tilføj at de kan vælge navn
-#der skal være en quit
-#prøv med pygame text
+#the function handling the main menu of the game - this function is the only one needed to call, as it will call the other
 def mainMenu():
 	running = True
 	hasStarted = False
@@ -597,6 +589,7 @@ def mainMenu():
 		prepareMainGame()
 		mainGame()
 
+#the function handling the end screen of the game
 def endScreen(whoWonIsRed,endScreenRunning):
 	hasExited = False
 	playerWhoWon = findPlayerWhoWonBasedOnIfHeIsRedOrNot(gameboard.isRedsTurn) #whoevers turn it is, is the one who won
@@ -620,6 +613,7 @@ def endScreen(whoWonIsRed,endScreenRunning):
 	else:
 		print("here")
 
+#the function handling the main game and calls all the appropiate functions
 def mainGame():
 	window.fill(WHITE)
 	running = True
@@ -635,7 +629,6 @@ def mainGame():
 				clickedPos = pygame.mouse.get_pos()	
 				global column
 				column = gamePosToCodePos(clickedPos)
-				#time.sleep(0.1)	
 				if (validColumnSelected(column) and columnNotFull(column)):
 					endGameState = doPlayerTurn(column,gameboard.isRedsTurn)
 					if endGameState != None:
@@ -656,4 +649,8 @@ pygame.quit()
 Flyt i flere filer
 fjern prints og ligegyldige kommentarer
 tilføj kommentarer(måske)
+
+hovedmenu:
+	#måske tilføj senere at de kan vælge mellem 5 farver
+	#også tilføj at de kan vælge navn
 """
