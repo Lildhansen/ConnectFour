@@ -73,8 +73,6 @@ class Piece():
 		pygame.draw.circle(window,RED if self.isRed else YELLOW,(gamePosOfColumn,gamePosOfRow-2),PIECE_RADIUS+5) #+5 and -2 to make sure all is covered
 		#pygame.draw.rect(window,RED if isRed else YELLOW,(gamePosOfColumn,gamePosOfRow,COLUMN_WIDTH,ROW_HEIGHT)) #possible rect
 
-
-
 #helper for Gameboard self.piecesInGameboardArray:
 def createIntialBoard():
 	intialBoard = [[0]*8 for y in range(7)]
@@ -385,7 +383,7 @@ def validColumnSelected(column):
 def columnNotFull(column):
 	return gameboard.columnCounter[column] < 6
 
-#
+#the pop-up screen before the end screen if the game was a draw
 def drawGamePreEndScreen():
 	mouseClicked = False
 	drawImage = pygame.image.load("billeder/smallPlayerWon/draw.PNG")
@@ -402,6 +400,7 @@ def drawGamePreEndScreen():
 		window.blit(waitInputImage,waitInputPosition)
 		pygame.display.update()
 
+#the pop-up screen before the end screen if one of the player's won
 def preEndScreen(whoWonIsRed):
 	mouseClicked = False
 	waitInputImage = pygame.image.load("billeder/waitInput/noBackGround.PNG")
@@ -460,6 +459,7 @@ def blinkImage(imageLocation,imageWidth):
 		clock.tick(10)
 	print("stop")
 
+#class representation of the start game button from the main menu
 class StartGameButton:
 	def __init__(self):
 		self.font = pygame.font.Font('freesansbold.ttf', 80)
@@ -472,6 +472,7 @@ class StartGameButton:
 
 startGameButton = StartGameButton()
 
+#class representation of the exit game button from the main menu
 class ExitGameButton:
 	def __init__(self):
 		self.font = pygame.font.Font('freesansbold.ttf', 80)
@@ -484,6 +485,7 @@ class ExitGameButton:
 
 exitGameButton = ExitGameButton()
 
+#keeps the properties of the radio buttons intact - depending on what button has been activated
 def fixRadioButtons():
 	if yellowRadioButtons[0].hasBeenActivated:
 		yellowRadioButtons[0].hasBeenActivated = False
@@ -514,7 +516,8 @@ def fixRadioButtons():
 		yellowRadioButtons[0].isActivated = True
 	else:
 		return
-		
+
+#depending on what button was pressed, the radio buttons are fixed visually	
 def fixRadioButtonsVisually():
 	i = 0
 	while i < 2:
@@ -535,6 +538,7 @@ def fixRadioButtonsVisually():
 		if self.textRect.collidepoint(position):
 			return True
 
+#calling the appropiate functions before running the main game
 def prepareMainGame():
 	global gameboard
 	gameboard = Gameboard(True if player1RadioButton.color == RED else False)
@@ -648,7 +652,6 @@ pygame.quit()
 """
 Flyt i flere filer
 fjern prints og ligegyldige kommentarer
-tilføj kommentarer(måske)
 
 hovedmenu:
 	#måske tilføj senere at de kan vælge mellem 5 farver
